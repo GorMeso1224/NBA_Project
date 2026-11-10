@@ -1,0 +1,160 @@
+---
+title: "Stats 15 Project: Data Proposal Questionnaire"
+author: "Team Fifteen"
+format: pdf
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Instructions:** Please answer the following questions thoroughly before your scheduled data proposal meeting. Your responses will help guide the discussion and ensure you have adequately explored your chosen dataset. Remember to also send the data file(s) or link(s) to your professor at least 24 hours before the meeting.
+
+**Team Members:** Taron Hakobyan, Colin Doherty, Gor Mesropian, Hampus Dahlstrom, Lucas Cao
+
+**Dataset Name/Topic:** NBA Dataset - Box Scores & Stats, 1947 - Today 
+
+**Link to the Data:**
+https://www.kaggle.com/datasets/eoinamoore/historical-nba-data-and-player-box-scores
+
+## 1. Data Source & Credibility
+
++ **Where did you obtain this data?** (Provide URL, publication name, contact person, etc.)
+    + Kaggle : https://www.kaggle.com/datasets/eoinamoore/historical-nba-data-and-player-box-scores,
+    + Contributors: Bernard Yen-Kai Wong, Eoin A Moore, Smooth Trunkfish
+    + A custom distance lookup table created by our teammate using math formulas between team cities.
++ **Is the source credible and well-documented?** (Explain why or why not).
+    + Yes
++ **How was the data collected?** (e.g., survey, experiment, web scraping, sensors, reported measurements).
+    + box score data originates from official NBA game logs
++ **When was the data collected?**
+    + 1946-11-26 - 2025-11-11
++ **Who collected the data?**
+    + NBA game logs
++ **Was the data self-reported or directly measured?**
+    + Measured
++ **Were the observations obtained randomly?** (If known, explain. If not known, state that).
+    + No
++ **Is this data simulated?** 
+    + No *(Reminder: Simulated data cannot be used for the final project)*.
+
+## 2. Data Reliability & Initial Exploration
+
++ **Have you visually inspected the data file(s)?** (e.g., opened it in spreadsheet software, text editor, or statistical software).
+    + Yes
++ **Are there any missing values in the data?** Yes
+    + If yes, which variables have missing values, and approximately how many are missing per variable?
+    + What are the potential implications of these missing values for your analysis?
+    + What is your initial strategy for handling them? (e.g., remove rows, imputation - specify method if known).
+        + There are some columns with insignificant percentage of NAs compared to the overall size of the data. Some player performance columns contain NA values We plan to clean the observations that have missing values.
++ **Have you checked for duplicate rows or observations?** No
+    + If yes, were any found? What is your strategy for handling them?
+        + Have not explored yet
++ **Have you identified any suspicious, potentially incorrect, or unusual values (outliers) in any variables?** No
+    + If yes, provide examples and explain why they seem suspicious.
+    + What is your initial strategy for handling them?
+        + Have not explored yet
++ **Based on your initial exploration, do you consider the data reliable and trustworthy for analysis? Explain your reasoning.**
+    + Yes. NBA game statistics are official, and the distances table computation is straightforward .
++ **(Optional) Have you cross-referenced any values or summary statistics with external sources?** If so, what did you find?
+    + No
+## 3. Variables
+
++ **List the variables (column names) in your dataset that you plan to use for your project.**
++ **For each key variable you plan to use, provide:**
+    + Home/Away Factor Variables (Games.csv)
+      + home 
+        + (1 = home, 0 = away)
+        + Type: Categorical, nominal
+      + homeScore
+        + score of the home team
+        + Type: Numeric
+      + awayScore
+        + score of the away team
+        + Type: Numeric
+      + win
+        + (1 = win, 0 = loss)
+        + Type: Categorical
+      + gameType
+        + The type of game (e.g., regular season, playoffs) : filter out only regular season games
+      
+    + Distance Factor Variables (Games.csv + custom distance lookup dataset)
+      + hometeamName
+        + Type: Text, Categorical
+      + hometeamCity
+        + Type: Text
+      + awayteamName
+        + Type: Text, Categorical
+      + homeScore
+        + score of the home team
+        + Type: Numeric
+      + awayScore
+        + score of the away team
+        + Type: Numeric
+      + winner
+        + ID of the team that won the game
+        + Type: Numeric
+      + distance_traveled
+        + Estimated travel distance for the away team to reach the home arena.
+        + Type: Numeric
+        
+    + Franchise Factor Variables (PlayerStatistics.csv)
+      + playerteamName
+        + Type: Categorical
+      + playerteamCity
+        + Type: Text
+      + personId
+        + player ID
+        + Type: Numeric
+      + gameId
+        + Type: Numeric
+      + win
+        + (1 = win, 0 = loss)
+        + Type: Numeric
+      + home
+        + (1 = win, 0 = loss)
+        + Type: Numeric
+      + points
+        + Number of points the player scored in the game
+        + Type: Numeric
+      + assists
+        + Number of assists recorded by the player
+        + Type: Numeric
+      + fieldGoalsPercentage
+        + Percentage of field goals made by the player
+        + Type: Numeric
+      + turnovers
+        + Number of turnovers made by the player
+        + Type: Numeric
+      
+
+## 4. Subject Knowledge
+
++ **Briefly describe your team's current understanding of the subject matter related to your dataset.** (e.g., Are you familiar with this field? Have you taken related courses? Do you have personal experience?)
+    + We have thoughtfully explored the data set and identified potentially useful columns. Knowledge of the actual subject matter is limited
++ **What resources (articles, books, websites, experts) have you consulted or do you plan to consult to deepen your understanding of the context of this data?**
+    + N/A
+
+## 5. Project Scope & Research Question
+
++ **What is the primary research question(s) you aim to answer using this data?** (Be specific).
+    + To what extent do travel distance, franchise strength, and home-court advantage influence NBA game outcomes, and can these factors be combined into a simple model that predicts game results?
++ **Which specific variables from your dataset will be most important for answering your research question(s)?**
+    + All above mentioned variables seem important for our analyses. As we progress with our research will most probably have some adjustements.
++ **Briefly outline your initial ideas for analysis.** (e.g., specific graphs, statistical tests, models you might use).
+    + High level idea and purpose of our research
+    
+        + Our goal is to see how travel distance, franchise strength, and home-court advantage influence NBA game outcomes, and whether combining these factors can help us make simple, reasonable predictions. Each factor reflects something real about team performance, so together they may provide a clear way to estimate which team is more likely to win.
+        + To evaluate our approach, we will use data from 2023–2024 to build our factor scores and then predict the outcomes of 2025 games. Since we already know the actual 2025 results, we will measure our prediction accuracy by comparing our predicted winners to the real winners and computing the percentage of games we got right.
+
+    + Travel Distance Factor
+        + To analyze travel distance, we will merge our game data with the distance table to measure how far each away team traveled. Then we will group games by distance and compare win rates for short, medium, and long trips. This will give us a distance impact score that shows whether long travel makes teams more likely to lose, and we will use this as one of our prediction factors.
+      
+    + Franchise Strength Factor
+        + To measure franchise strength, we will standardize each player’s game performance using league-wide z-scores and combine these into a single performance index. Averaging this index for each franchise gives us a franchise strength score, which shows whether a team has a positive, neutral, or negative effect on player performance and serves as one of our prediction factors.
+      
+    + Home-Court Advantage Factor
+        + To measure home-court advantage, we will compare each team’s win rate at home versus away and visualize the differences with ggplot2. This will give us a home-advantage factor showing how much playing at home increases the chance of winning, which we will include in our final prediction model.
+    
+    + Desired Outcome
+      + Once we understand how each factor influences game results, we will turn them into simple numerical scores that can be added together. Each factor (distance, franchise strength, and home advantage) will get a small positive or negative value based on how strongly it affects winning. For example, if long travel lowers the chance of winning, it might get a negative score, while strong franchises and home-court advantage might get positive scores. Adding these small values together will give us a final prediction score for each team, which we can use to guess the winner of a game.

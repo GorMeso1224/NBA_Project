@@ -1,0 +1,305 @@
+---
+title: "ZScores"
+format: html
+editor: visual
+---
+
+# Load initial data
+
+This is the primary data set and includes Box Scores for each player in each game
+
+```{r}
+library(tidyverse)
+players <- read_csv("./data/PlayerStatistics.csv")
+```
+
+# Find how many teams don't exist anymore
+
+```{r}
+players %>% 
+  filter(year(gameDate) > 1970) %>% 
+  distinct(playerteamCity) %>% 
+  anti_join(
+    players %>% 
+      filter(year(gameDate) == 2024) %>% 
+      distinct(playerteamCity),
+    by = "playerteamCity"
+  )
+```
+
+# Blean Box Scores
+
+Filter data to certain date (2015) and remove international teams
+
+```{r}
+players <- players %>%
+  filter(year(gameDate)>=2015,
+         gameType %in% c("Playoffs", "Regular Season", "Play-in Tournament", NA),
+         numMinutes>0,
+         !playerteamName %in% c("United", "Loong-Lions", "Jerusalem B.C.", "Pheonix"))
+```
+
+# Load Secondary dataset
+
+each row in this dataset is a unique game/team used for calculating win rates and thats it
+
+```{r}
+library(lubridate)
+Team_Data <- read_csv("data/TeamStatistics.csv")
+
+Team_Data <- Team_Data %>% 
+  select( gameDate, teamName, teamId, opponentTeamName, opponentTeamId, gameId, home, win, teamScore, assists, teamCity, steals, fieldGoalsAttempted, fieldGoalsMade, fieldGoalsPercentage, threePointersPercentage, freeThrowsPercentage, reboundsTotal, pointsFastBreak, pointsFromTurnovers, pointsSecondChance, pointsInThePaint) %>% 
+  # clean data 
+  # There were some international teams that were removed
+  #filter(!(teamId %in% c(15016,15018, 50013, 50014))) %>% 
+  filter(year(gameDate) >= 2015)
+
+Team_Data %>% distinct(teamName)
+```
+
+# Calculate win rate
+
+Basically, its pretty hard to quantifiable say what contributes to a team culture and measure it quantitatively. One of the ways this can be measured is through win rate.
+
+```{r}
+#Calculating win rate for every team
+
+win_rate_data <- Team_Data %>%
+  group_by(teamName) %>% 
+  summarise(total_wins = sum(win), total_games = n()) %>%
+  mutate(winRate= total_wins / total_games) 
+
+win_rate_data %>% 
+  select(teamName, winRate) %>% 
+  arrange(desc(winRate))
+```
+
+In order to visualize the win rate and which teams are good and bad we created a column diagram with ggplot. The graph was flipped on its side and a line at 0.5 win rate was introduced, to show the cut of for a good/bad team. Teams with a win rate over 50% was given a green color and teams with a win rate below 50% was given a red color.
+
+```{r}
+win_rate_data %>% 
+  mutate(color_group = ifelse(winRate < 0.5, "red", "green")) %>%
+  ggplot(aes(x = reorder(teamName, winRate), 
+             y = winRate,
+             fill = color_group)) +
+  geom_col() +
+  geom_hline(yintercept = 0.5, linetype = "dashed")+      # line at 0.5
+  coord_flip(ylim = c(0.35, 0.65)) +                      # zoomed graph around line at 0.5
+  scale_fill_manual(values = c("red" = "#F44336",       
+                               "green" = "#4CAF50"))+    # assinging color
+  theme_minimal(base_size = 13) + 
+  guides(fill = "none") +
+  labs(y = "Win Rate", x = "Team")
+
+```
+
+# Bulk Calculation of career averages
+
+career caluclates each players average standard deviations for their major stats zScores for each game and given their career mean and standard dev. then by team, calculates each players average z score for each stat on that team in their career
+
+So for example, players who played on one team their whole career would have a zAvgPPG and zAvgPPM of 0. However, if a player played for the Lakers and Cavaliers but had higher PPG stats on the cavaliers then the their entries would look like the following:
+
+```{r}
+#LeBron
+byTeam %>% 
+  filter(personId == 2544) %>% 
+  select(playerteamName, year, zAvgPPG)
+```
+
+Positive values are better than average performances and negative are worse than average
+
+```{r}
+career <- players %>% 
+  group_by(personId) %>% 
+  mutate(PPM = points/numMinutes) %>% 
+  summarize(careerPPM = mean(PPM),
+            careerPPG = mean(points),
+            careerGames = n(),
+            careerMinutes = sum(numMinutes),
+            sdPoints = sd(points),
+            sdPPM = sd(PPM),
+            careerFAPG = mean(fieldGoalsAttempted),
+            sdFAPG = sd(fieldGoalsAttempted),
+            careerFGP = mean(fieldGoalsPercentage),
+            sdFGP = sd(fieldGoalsPercentage)) %>% 
+  filter(!is.na(sdPoints))
+
+zPlayers <- players %>% 
+  inner_join(career, by = join_by(personId == personId)) %>% 
+  mutate(PPM = points/numMinutes,
+         zPPG = (points-careerPPG)/sdPoints,
+         zPPM = (PPM-careerPPM)/sdPPM,
+         zFAPG = (fieldGoalsAttempted-careerFAPG)/sdFAPG,
+         zFGP = (fieldGoalsPercentage-careerFGP)/sdFGP)
+
+byTeam <- zPlayers %>% 
+  filter(numMinutes>0) %>%
+  mutate(year = year(gameDate)) %>% 
+  group_by(personId, playerteamName, year) %>% 
+  mutate(PPM = points/numMinutes) %>% 
+  summarize(teamPPM = mean(PPM),
+            teamPPG = mean(points),
+            teamGames = n(),
+            teamMinutes = sum(numMinutes),
+            zAvgPPG = mean(zPPG),
+            zAvgPPM = mean(zPPM),
+            zAvgFAPG = mean(zFAPG),
+            zAvgFGP = mean(zFGP))
+
+#names <- players %>% select(firstName, lastName, personId)
+
+#names %>% filter(lastName == "Westbrook")
+
+# not sure why I can't do the below instead of the above filter. Somehow this causes byTeam to ungroup
+
+  # left_join(names, by = "personId") %>% 
+  # relocate(firstName, lastName, zAvgPPG, zAvgPPM,playerteamName, .before = 1) %>% 
+  # filter(firstName == "LeBron")
+
+#There are a couple of people for whom have played<3 games and scored <2 points that cause avgZssoc to be NA
+#See below code chunk
+```
+
+#Calculate Team Association indexes by year Now, we average the zAvgPPG for each player who played for said team since 2015, weighted by the minutes a player played for that team. We weight it because the results starter who player \>70 games a season matter more than a bench player who played in \<10 games a season.
+
+```{r}
+teamAssoc <- byTeam %>% 
+  group_by(playerteamName, year) %>% 
+  summarize(avgAssocPPG = mean(zAvgPPG*teamMinutes, na.rm = TRUE),
+            avgAssocPPM = mean(zAvgPPM*teamMinutes, na.rm = TRUE),
+            avgAssocFAPG = mean(zAvgFAPG*teamMinutes, na.rm = TRUE),
+            avgAssocFGP = mean(zAvgFGP*teamMinutes, na.rm = TRUE)) %>%
+  arrange(desc(avgAssocPPG))
+
+teamAssoc %>% arrange()
+```
+
+#Finding data for total teams & corelation between indexes
+
+We explored if any of the indexes seem to have a correlation between each other. They do. attempts, PPG and PPM all have a positive correlation. But FGP does not
+
+```{r}
+
+totalTeamAssoc <- teamAssoc %>% 
+  group_by(playerteamName) %>% 
+  select(-year) %>% 
+  summarize_all(mean) %>% 
+  left_join(win_rate_data, join_by(playerteamName == teamName))
+totalTeamAssoc
+
+totalTeamAssoc %>% 
+  ggplot(aes(x = avgAssocFAPG, y = avgAssocPPG)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+print("correlation between attempts and PPG")
+cor.test(totalTeamAssoc$avgAssocFAPG, totalTeamAssoc$avgAssocPPG)
+
+totalTeamAssoc %>% 
+  ggplot(aes(x = avgAssocFAPG, y = avgAssocPPM)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+print("correlation between attempts and PPM")
+cor.test(totalTeamAssoc$avgAssocFAPG, totalTeamAssoc$avgAssocPPM)
+
+print("correlation between attempts and FGP")
+totalTeamAssoc %>% 
+  ggplot(aes(x = avgAssocFAPG, y = avgAssocFGP)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+cor.test(totalTeamAssoc$avgAssocFAPG, totalTeamAssoc$avgAssocFGP)
+```
+
+# Testing win rate vs indexes
+
+testing a correlation between win rate and the indexes of teams There seems to exist a probable correlation
+
+```{r}
+totalTeamAssoc %>% 
+  ggplot(aes(x = winRate, y = avgAssocPPG)) +
+  geom_point() + geom_smooth(method = "lm")
+cor.test(totalTeamAssoc$winRate, totalTeamAssoc$avgAssocPPG)
+
+totalTeamAssoc %>% 
+  ggplot(aes(x = winRate, y = avgAssocFGP)) +
+  geom_point() + 
+  geom_smooth(method = "lm")
+cor.test(totalTeamAssoc$winRate, totalTeamAssoc$avgAssocPPG)
+```
+
+# Testing the indexes in ANOVA
+
+anova testing only shows signifcance of a relationship between PPG and teams This partially contradicts correlation testing
+
+```{r}
+teamAssocB <- teamAssoc %>% 
+  left_join(win_rate_data, join_by(playerteamName == teamName))
+
+modelPPG <- aov(avgAssocPPG ~ playerteamName, data = teamAssocB)
+summary(modelPPG)
+
+modelFGP <- aov(avgAssocFGP ~ poly(winRate,2), data = teamAssocB)
+summary(modelFGP)
+```
+
+# Graphing the indexes for last 10 years by team
+
+summarize the major index values: PPG and FGP FGAP and PPM correlate already with PPG so not graphed
+
+```{r}
+library(ggthemes)
+
+totalTeamAssoc %>%
+  ggplot(aes(x = reorder(playerteamName, avgZssocPPG), 
+             y = avgZssocPPG, 
+             fill = avgZssocPPG > 0)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(title = "Average Player Over/Underperformance by Franchise",
+       subtitle = "Measured in effect index relative to each player’s own career average",
+       x = "Franchise",
+       y = "Weighted Avg effect index (Points per Game)") +
+  scale_fill_manual(values = c("TRUE" = "#4CAF50", "FALSE" = "#F44336")) +
+  theme_minimal(base_size = 13)
+
+totalTeamAssoc %>%
+  ggplot(aes(x = reorder(playerteamName, avgZssocFGP), 
+             y = avgZssocFGP, 
+             fill = avgZssocFGP > 0)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(title = "Average Player Over/Underperformance by Franchise",
+       subtitle = "Measured in effect index relative to each player’s own career average",
+       x = "Franchise",
+       y = "Weighted Avg effect index (Field Goal Percentage)") +
+  scale_fill_manual(values = c("TRUE" = "#4CAF50", "FALSE" = "#F44336")) +
+  theme_minimal(base_size = 13)
+```
+
+# What do indexes mean?
+
+So far the indexes have been abstract. Here is a sample table that shows how much of an effect our indexes mean. Its very small. We estimate that the strongest effect is \~2 extra PPG or \~2% more FG%
+
+```{r}
+yearTested <- 2025
+
+mins <- byTeam %>%
+  filter(year == yearTested) %>% 
+  group_by(playerteamName) %>% 
+  summarize(avgTeamMinutes = mean(teamMinutes))
+
+weightedSds <- career %>% 
+  filter(careerMinutes!=0) %>% 
+  summarize(centralSdFgp = mean(sdFGP*careerMinutes),
+            meanCareerMinutes = mean(careerMinutes),
+            centralSdPpg = mean(sdPoints*careerMinutes)) %>% 
+  mutate(SdFgp = centralSdFgp/meanCareerMinutes,
+         SdPpg = centralSdPpg/meanCareerMinutes)
+  
+left_join(totalTeamAssoc, mins, by = "playerteamName") %>% 
+  mutate(FgpEffect = avgAssocFGP*weightedSds$SdFgp/avgTeamMinutes*100,
+         PpgEffect = avgAssocPPG*weightedSds$SdPpg/avgTeamMinutes) %>% 
+  arrange(desc(PpgEffect)) %>% 
+  relocate(PpgEffect, FgpEffect, avgAssocPPG, avgAssocFGP, .after = 1) 
+
+rm(mins,weightedSds)
+```
