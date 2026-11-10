@@ -1,0 +1,117 @@
+---
+title: "distance"
+format: html
+editor: visual
+---
+
+# Load initial data
+This is a table with a row for each game per team. So two rows per game, one for the home and away team.
+```{r}
+library(tidyverse)
+Team_Data <- read_csv("data/TeamStatistics.csv")
+```
+
+# Filter data to certain date
+Also we only want the rows from the perspective of away teams.
+
+```{r}
+Team_Data <- Team_Data %>%
+  filter(year(gameDate)>=2015,home == 0)
+```
+
+
+# disambiguate city names
+Lakers and Clipper both play in LA
+```{r}
+
+travelingCities <- Team_Data %>%
+  pull(teamCity)
+travelingNames <- Team_Data %>% 
+  pull(teamName)
+oppCities <- Team_Data %>%
+  pull(opponentTeamCity)
+oppNames <- Team_Data %>% 
+  pull(opponentTeamName)
+
+cleanCities <- function(cities, names){
+  for(i in 1:length(cities)){
+    city <- cities[i]
+    if(city %in% c("LA", "Los Angeles")){
+      if(names[i] == "Lakers"){
+        city <- "LA_LAK"
+      }else if(names[i] == "Clippers"){
+        city <- "LA_CLI"
+      }
+    }
+    cities[i] = city
+  }
+  return (cities)
+}
+
+Team_Data$teamCity <- cleanCities(travelingCities, travelingNames)
+Team_Data$opponentTeamCity <- cleanCities(oppCities, oppNames)
+
+rm(travelingCities, travelingNames, oppCities, oppNames, cleanCities)
+
+```
+
+# generate distances
+Using the Lookup table to add a column travelDist, which is the estimated travel distance, calculated as the distance between the home team and the away team.
+
+The details of generating the dist Lookup are abstracted in this report because we believe that that solving that problem was a math question, not a data science one. However, details can be found in the genLocations.R file. For our purposes, assume that distLookup[city1, city2] is the distance between the two cities.
+```{r}
+readLookup <- read.csv("./generatedData/distLookup.csv", row.names = 1)
+
+travelDists <- 1:nrow(Team_Data)
+travelingCities <- Team_Data %>% pull(teamCity)
+oppCities <- Team_Data %>% pull(opponentTeamCity)
+
+travelingCities <- gsub(" ", "_", travelingCities)
+oppCities <- gsub(" ", "_", oppCities)
+
+for(i in 1:length(travelDists)){
+  dist <- readLookup[travelingCities[i],oppCities[i]]
+  if(!is.numeric(dist)){
+    #print(playerCity)
+    #print(oppCity)
+    dist <- 0
+  }
+  travelDists[i] <- dist
+}
+
+readLookup[travelingCities[1],oppCities[1]]
+
+Team_Data$travelDist <- travelDists
+
+
+Team_Data %>% 
+  relocate(teamCity, opponentTeamCity, travelDist, .before=1)
+
+Team_Data <- Team_Data %>% 
+  relocate(teamCity, opponentTeamCity, travelDist, .before=1) %>% 
+  filter(travelDist != 0)
+```
+
+# graphing and testing win rate over travel dist
+There seems to be no correlation.
+See conclusion for more details as to why on we believe we arrived at this surprising conclusion
+
+```{r}
+Team_Data <- Team_Data
+Team_Data %>%
+  ggplot(aes(x = travelDist, 
+             fill = if_else(win==1, "win", "loss"),
+            )
+         ) +
+  geom_histogram(binwidth = 100, position = "fill") +
+  scale_fill_manual(values = c("loss" = "#F44336", "win" = "#4CAF50")) +
+  labs(
+    x = "distance between home and away team (miles)",
+    y = "win rate of away teams",
+  ) +
+  theme(
+    legend.title = element_blank()
+  )
+
+cor.test(Team_Data$travelDist, Team_Data$win)
+```

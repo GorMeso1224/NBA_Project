@@ -1,0 +1,667 @@
+---
+title: "Final Project"
+output: html_document
+editor: visual
+---
+
+# Project Introduction
+
+## **Motivating Questions and Scope on Analysis**
+
+The NBA is the largest basketball league on the planet and one of the most popular sports to watch in America. Every year in the NBA, players change to new teams, franchises get better, some get worse, and a new champion is crowned. The unpredictability of the NBA is what makes it so captivating to the viewers but what if there was order behind all of the chaos. In this project, we will seek to answer the motivating question: To what extent does team context influence teams performance.
+
+## **Background Information**
+
+**Basic structure:** Professional basketball such as the NBA, the focus of this study, offers an ideal environment for examining how contextual factors influence competitive performance. Games are played frequently, data collection is standardized and comprehensive, and team dynamics vary across locations, rosters, schedules, and franchise quality. We found our data set from Kaggel and our data set is called NBA Data set - Box Scores & Stats, 1947 – Today it is a data set that contains player and team box scores and statistics for every NBA game from 1947 to the present. For our project we used PlayerStatistics.csv (318.37 MG) and TeamStatistics.csv (34.19 MG). The observational unit in our data set is a single NBA game, meaning that every row represents one game played between two teams.
+
+ 
+
+**NBA:** The National Basketball Association, NBA, is the biggest and premier basketball league in the world. It is made up of currently active 30 teams, which come from all over North America. The NBA was founded in 1949 when the two previous basketball leagues in North America, the Basketball Association of America (BAA) and the National Basketball League (NBL) were merged into one. The league is structured in two conferences the Eastern Conference and the Western Conference, with 15 teams in each. The conferences are further divided into 3 divisions with 5 teams each. Each season stretches from October to April and includes 82 games. After the regular season is done there is a Playoff where the best 16 teams, 8 teams from each conference, compete in a tournament to determine the NBA champion. Before the playoffs there is also a postseason competition called Play-In Tournament. The Play-In Tournament is to determine the final two playoff teams in each conference. Teams that finish 7th through 10th in the regular-season standings compete for the last two playoff spots. Our dataset stretches all the way back to 1947 but for the scope of this project we have decided to look at the games from 2015 to present day. This decision was made because it both removes any nonactive teams and limits our research to only the modern NBA.
+
+ 
+
+**Research**: As previously mentioned, the NBA is unpredictable. While some teams stay consistent season to season, there are many factors that can influence a team’s performance. A team can change coach, move facilities, get a bad traveling and game schedule or a star player can move teams. Because of this unpredictability of the NBA, we set out to investigate 3 different topics. We wanted to use NBA data to investigate travel fatigue, the influence of home court advantage, and the association between team context (coaching, facilities and team fit) and game outcomes. Our dataset for this project contains detailed information on individual NBA games, including team identities, scores, location, and performance-related indicators. To supplement this we have also compiled a table of the team home arena locations and used their coordinates to determine the travel distance.
+
+\
+\
+
+## **Variable Explanation**
+
+1.  **home** (numeric),  this  variable gives either a home or away designation for each game mentioned in the data set. The variable is saved as a one if the game was played at home or a 0 if the game was played away. 
+
+2.  **gameDate** (numeric)  This gives us the exact data and time that a specific game was played between two teams. This variable will be used to divide matches into certain seasons helping us distinguish how a team performed in a season. 
+
+3.  **year** (numeric) The year each game was played. This was derived from the gameDate variable using the lubridate data set. It will be used to divide matches into certain seasons helping us distinguish how a team performed in a season. 
+
+4.  **teamName** (character) This grants us the name of each team that played in a specific match. This is used throughout the whole project to attribute stats and measurements to a specific team. 
+
+5.  **teamId** (numeric) this gives a unique 10 digit id number to each franchise that appeared in the data set. Team ID was used to filter out certain foreign teams that were mentioned in the data set only once. 
+
+6.  **plusMinusPoints** (numeric)  Plus minus points is another variable measured in the data set. as the difference in points scored between teams in a game, an important measure because it captures not just who won, but how decisively they won. This will give us a measure of how a team performed both offensively and defensively throughout a game.
+
+7.  **minutes played** (per player per game) Minutes a player played in a given game. Used to calculate points per minute and to weight averages for players that played lots of minutes
+
+8.  **points** (numeric) (per player per game) points a player scored in a game. Used to calculate the mean, standard deviation and the z_score of a player’s points in any given game.
+
+9.  **Field Goals Attempts** (numeric) (per player per game) shots taken in a game with intent to score. Used to calculate the mean, standard deviation and the z_score of a player's field goal attempts in any given game.
+
+10. **Field Goal Percentage** (numeric) (per player per game) the fraction of shots made over the shots taken of a player in a given game. Used to calculate the mean, standard deviation and the z_score of a player's field goal percentage in any given game.
+
+11. **personId** - a unique identifier per player. Used when we need to group by players.
+
+12. **playerteamCity** (per player per game). The City that a team plays for. Since 2015 is a 1 to 1 mapping i.e. there is a unique city for each team and a unique team for each city. Thus, is also used in some grouping functions, however mainly used for calculating distance with the lookup table. 
+
+13. **win** (numeric). The team that won that game is given a value of 1 and the team that lost is given a value of 0.
+
+14. **gameType** (character) The type of game. Regular Season, Playoffs, specialty games etc. Used to filter out specialty games.
+
+Each variable in our study plays a specific role in understanding game outcomes. Home-court advantage is represented in the dataset through the home/away field, which identifies where the game occurred. This allows us to compare home win rates and quantify whether teams perform differently when supported by their home crowd.
+
+**Calculated Variable Explanation**
+
+1.  **PM_mean** (numeric):  This gives the mean plus minus points of a team over all their games over a year. 
+
+2.  **PM_home** (numeric): This gives the mean plus minus points for only home games of a team over all their games over a year. 
+
+3.  **PM_away** (numeric): This gives the mean plus minus points for only away games of a team over all their games over a year. 
+
+4.  **Difference** (numeric): The difference variable gives us the difference between a teams PM_mean and the PM_home/away variable for each year. 
+
+5.  **home_final** (numeric): The home final gives the mean difference in plus minus for a team throughout the last 10 years. There is one value for every franchise. 
+
+6.  **away_final** (numeric): The away final gives the mean difference in plus minus for a team throughout the last 10 years. There is one value for every franchise. 
+
+7.  **total_wins** (numeric): The total amount of wins accumulated by one team.
+
+8.  **total_games** (numeric): The total amount of games played by one team.
+
+9.  **winRate** (numeric): The percentage of games a team won.
+
+10. **avgAssoc\[stat\]** (numeric): \[stat\] is one of field goal attempts per game (FAPG), points per game (PPG), points per minute (PPM), or field Goal % (FGP).\
+    avgAssoc is an index of the teams association with increasing or decreasing play performance measured by \[stat\]
+
+11. **\[stat\]Effect** (numeric): \[stat\] is one of above.\
+    The estimated effect of avgAssoc\[stat\] but in the units of \[stat\]
+
+# **Home Court Advantage Section**
+
+First thing that we need to do is load in the data and upload the libraries we will be using.
+
+I selected the columns that I am going to use throughout this section and filtered out some foreign teams that are not relevant in this context. We also filtered for the last 10 years (Since 2015) just to make sure we have data on the most recent era of the NBA.
+
+```{r}
+library(tidyverse)
+library(lubridate)
+Team_Data <- read_csv("data/TeamStatistics.csv")
+
+
+new_data <- Team_Data %>%   mutate(year = year(gameDate)) %>% 
+  select( gameDate, year, teamName, teamId, home, plusMinusPoints) %>% 
+  # Selecting the columns from the dataset that are useful to us
+  
+  filter(!(teamId %in% c(15016,15018, 50013, 50014))) %>% 
+  filter(year(gameDate) >= 2015)
+new_data
+#some more filtering to remove unwanted foriegn teams and get the years that I want
+
+```
+
+Now we want to create 3 new tables. Each table is going to have an entry for a team, one for every year since 2015. There will be one table with the mean plus minus points for every game the team played through the year, one for average plus minus for only away games. and one for only home games.
+
+```{r}
+
+#Getting new tables here with the away, home, and all time plus minuses for every franchise and year
+
+mean_PM <- new_data %>% 
+  group_by(teamName,year)  %>% 
+  summarise(PM_mean = mean(plusMinusPoints, na.rm = TRUE))
+mean_PM
+
+home_PM <- new_data %>% 
+  filter(home == 1) %>% 
+  group_by(teamName,year)  %>% 
+  summarise(PM_home = mean(plusMinusPoints, na.rm = TRUE))
+home_PM
+
+away_PM <- new_data %>% 
+  filter(home == 0) %>% 
+  group_by(teamName,year)  %>% 
+  summarise(PM_away = mean(plusMinusPoints, na.rm = TRUE))
+away_PM
+            
+```
+
+In this section I am joining the 3 new tables together. This is an important step because it allows be to run calculations on each of my newly calculated variables. It is very difficult to do calculations with data from different data frames, so joining them fixed this issue.
+
+```{r}
+#joining all these new tables together into one 
+
+All_PM <- mean_PM %>%
+  left_join(home_PM, by = join_by(teamName, year)) %>%
+  left_join(away_PM, by = join_by(teamName, year))
+All_PM
+```
+
+Now to calculate how each teams home stadium affects their performance, we used a nowise function to subtract a teams Plus minus for all their home games by their total mean plus minus for every year. This difference was saved in the variable "Difference". Then the same exact thing was done for their away games.
+
+After we get these values for each team for every year. We then grouped these new tables by team and found the average for each team throughout all of the years. In return we are left with a score for each team that tells us how much better/worse a team plays at home compared to their average performance.
+
+```{r}
+diff_home <- All_PM %>%
+  group_by(teamName, year) %>%
+  summarise(Difference = PM_home - PM_mean)
+diff_home
+
+
+diff_away <- All_PM %>%
+  group_by(teamName, year) %>%
+  summarise(Difference = PM_away - PM_mean)
+diff_away
+
+
+
+avg_homediff <- diff_home %>% 
+  group_by(teamName) %>% 
+  summarise(home_final = mean(Difference))
+avg_homediff
+  
+
+avg_awaydiff <- diff_away %>% 
+  group_by(teamName) %>% 
+  summarise(away_final = mean(Difference))
+avg_awaydiff
+
+```
+
+This code chunk uses ANOVA testing and gets a significant result We anova test here BEFORE we group by year because this more accurately represents the number of observations
+
+```{r}
+new_data <- new_data %>% 
+  select(teamName, home, plusMinusPoints) %>% 
+  left_join(mean_PM, by = "teamName") %>% 
+  mutate(PMdiff = plusMinusPoints-PM_mean)
+
+model <- aov(PMdiff ~ teamName, data = new_data)
+summary(model)
+
+```
+
+Here is all the data visualized for each team.
+
+```{r}
+avg_homediff %>% 
+  ggplot(aes(y = reorder(teamName,home_final),
+             x = home_final,
+             fill = home_final)) + geom_col() +   labs(
+    title = "Points Plus Minus Differential at Home",
+    x = " Performance Difference in Point Plus Minus",
+    y = "Team Name"
+  )
+
+
+avg_awaydiff %>% 
+  ggplot(aes(y = reorder(teamName,away_final),
+             x = away_final,
+             fill = away_final)) + geom_col() +labs(
+    title = "Points Plus Minus Differential at Away",
+    x = " Performance Difference in Point Plus Minus",
+    y = "Team Name"
+  )
+
+```
+
+# **Travel Distance Section**
+
+## Load initial data
+
+This is a table with a row for each game per team. So two rows per game, one for the home and away team.
+
+```{r}
+library(tidyverse)
+Team_Data <- read_csv("data/TeamStatistics.csv")
+```
+
+## Filter data to certain date
+
+Also we only want the rows from the perspective of away teams.
+
+```{r}
+Team_Data <- Team_Data %>%
+  filter(year(gameDate)>=2015,home == 0)
+```
+
+## disambiguate city names
+
+Lakers and Clipper both play in LA
+
+```{r}
+
+travelingCities <- Team_Data %>%
+  pull(teamCity)
+travelingNames <- Team_Data %>% 
+  pull(teamName)
+oppCities <- Team_Data %>%
+  pull(opponentTeamCity)
+oppNames <- Team_Data %>% 
+  pull(opponentTeamName)
+
+cleanCities <- function(cities, names){
+  for(i in 1:length(cities)){
+    city <- cities[i]
+    if(city %in% c("LA", "Los Angeles")){
+      if(names[i] == "Lakers"){
+        city <- "LA_LAK"
+      }else if(names[i] == "Clippers"){
+        city <- "LA_CLI"
+      }
+    }
+    cities[i] = city
+  }
+  return (cities)
+}
+
+Team_Data$teamCity <- cleanCities(travelingCities, travelingNames)
+Team_Data$opponentTeamCity <- cleanCities(oppCities, oppNames)
+
+rm(travelingCities, travelingNames, oppCities, oppNames, cleanCities)
+
+```
+
+## generate distances
+
+Using the Lookup table to add a column travelDist, which is the estimated travel distance, calculated as the distance between the home team and the away team.
+
+The details of generating the dist Lookup are abstracted in this report because we believe that that solving that problem was a math question, not a data science one. However, details can be found in the genLocations.R file. For our purposes, assume that distLookup\[city1, city2\] is the distance between the two cities.
+
+```{r}
+readLookup <- read.csv("./generatedData/distLookup.csv", row.names = 1)
+
+travelDists <- 1:nrow(Team_Data)
+travelingCities <- Team_Data %>% pull(teamCity)
+oppCities <- Team_Data %>% pull(opponentTeamCity)
+
+travelingCities <- gsub(" ", "_", travelingCities)
+oppCities <- gsub(" ", "_", oppCities)
+
+for(i in 1:length(travelDists)){
+  dist <- readLookup[travelingCities[i],oppCities[i]]
+  if(!is.numeric(dist)){
+    #print(playerCity)
+    #print(oppCity)
+    dist <- 0
+  }
+  travelDists[i] <- dist
+}
+
+readLookup[travelingCities[1],oppCities[1]]
+
+Team_Data$travelDist <- travelDists
+
+
+Team_Data %>% 
+  relocate(teamCity, opponentTeamCity, travelDist, .before=1)
+
+Team_Data <- Team_Data %>% 
+  relocate(teamCity, opponentTeamCity, travelDist, .before=1) %>% 
+  filter(travelDist != 0)
+```
+
+## graphing and testing win rate over travel dist
+
+There seems to be no correlation. See conclusion for more details as to why on we believe we arrived at this surprising conclusion
+
+```{r}
+Team_Data <- Team_Data
+Team_Data %>%
+  ggplot(aes(x = travelDist, 
+             fill = if_else(win==1, "win", "loss"),
+            )
+         ) +
+  geom_histogram(binwidth = 100, position = "fill") +
+  scale_fill_manual(values = c("loss" = "#F44336", "win" = "#4CAF50")) +
+  labs(
+    x = "distance between home and away team (miles)",
+    y = "win rate of away teams",
+  ) +
+  theme(
+    legend.title = element_blank()
+  )
+
+cor.test(Team_Data$travelDist, Team_Data$win)
+```
+
+# **Franchise Effect**
+
+## Load initial data
+
+This is the primary data set and includes Box Scores for each player in each game
+
+```{r}
+library(tidyverse)
+players <- read_csv("./data/PlayerStatistics.csv")
+```
+
+## Find how many teams don't exist anymore
+
+```{r}
+players %>% 
+  filter(year(gameDate) > 1970) %>% 
+  distinct(playerteamCity) %>% 
+  anti_join(
+    players %>% 
+      filter(year(gameDate) == 2024) %>% 
+      distinct(playerteamCity),
+    by = "playerteamCity"
+  )
+```
+
+## Clean Box Scores
+
+Filter data to certain date (2015) and remove international teams
+
+```{r}
+players <- players %>%
+  filter(year(gameDate)>=2015,
+         gameType %in% c("Playoffs", "Regular Season", "Play-in Tournament", NA),
+         numMinutes>0,
+         !playerteamName %in% c("United", "Loong-Lions", "Jerusalem B.C.", "Pheonix"))
+```
+
+## Load Secondary dataset
+
+each row in this dataset is a unique game/team used for calculating win rates and thats it
+
+```{r}
+library(lubridate)
+Team_Data <- read_csv("data/TeamStatistics.csv")
+
+Team_Data <- Team_Data %>% 
+  select( gameDate, teamName, teamId, opponentTeamName, opponentTeamId, gameId, home, win, teamScore, assists, teamCity, steals, fieldGoalsAttempted, fieldGoalsMade, fieldGoalsPercentage, threePointersPercentage, freeThrowsPercentage, reboundsTotal, pointsFastBreak, pointsFromTurnovers, pointsSecondChance, pointsInThePaint) %>% 
+  # clean data 
+  # There were some international teams that were removed
+  #filter(!(teamId %in% c(15016,15018, 50013, 50014))) %>% 
+  filter(year(gameDate) >= 2015)
+
+Team_Data %>% distinct(teamName)
+```
+
+## Calculate win rate
+
+Basically, its pretty hard to quantifiable say what contributes to a team culture and measure it quantitatively. One of the ways this can be measured is through win rate.
+
+```{r}
+#Calculating win rate for every team
+
+win_rate_data <- Team_Data %>%
+  group_by(teamName) %>% 
+  summarise(total_wins = sum(win), total_games = n()) %>%
+  mutate(winRate= total_wins / total_games) 
+
+win_rate_data %>% 
+  select(teamName, winRate) %>% 
+  arrange(desc(winRate))
+```
+
+In order to visualize the win rate and which teams are good and bad we created a column diagram with ggplot. The graph was flipped on its side and a line at 0.5 win rate was introduced, to show the cut of for a good/bad team. Teams with a win rate over 50% was given a green color and teams with a win rate below 50% was given a red color.
+
+```{r}
+win_rate_data %>% 
+  mutate(color_group = ifelse(winRate < 0.5, "red", "green")) %>%
+  ggplot(aes(x = reorder(teamName, winRate), 
+             y = winRate,
+             fill = color_group)) +
+  geom_col() +
+  geom_hline(yintercept = 0.5, linetype = "dashed")+      # line at 0.5
+  coord_flip(ylim = c(0.35, 0.65)) +                      # zoomed graph around line at 0.5
+  scale_fill_manual(values = c("red" = "#F44336",       
+                               "green" = "#4CAF50"))+    # assinging color
+  theme_minimal(base_size = 13) + 
+  guides(fill = "none") +
+  labs(y = "Win Rate", x = "Team")
+
+```
+
+## Bulk Calculation
+
+career caluclates each players average standard deviations for their major stats zScores for each game and given their career mean and standard dev. then by team, calculates each players average z score for each stat on that team in their career
+
+Positive values are better than average performances and negative are worse than average
+
+```{r}
+career <- players %>% 
+  group_by(personId) %>% 
+  mutate(PPM = points/numMinutes) %>% 
+  summarize(careerPPM = mean(PPM),
+            careerPPG = mean(points),
+            careerGames = n(),
+            careerMinutes = sum(numMinutes),
+            sdPoints = sd(points),
+            sdPPM = sd(PPM),
+            careerFAPG = mean(fieldGoalsAttempted),
+            sdFAPG = sd(fieldGoalsAttempted),
+            careerFGP = mean(fieldGoalsPercentage),
+            sdFGP = sd(fieldGoalsPercentage)) %>% 
+  filter(!is.na(sdPoints))
+
+zPlayers <- players %>% 
+  inner_join(career, by = join_by(personId == personId)) %>% 
+  mutate(PPM = points/numMinutes,
+         zPPG = (points-careerPPG)/sdPoints,
+         zPPM = (PPM-careerPPM)/sdPPM,
+         zFAPG = (fieldGoalsAttempted-careerFAPG)/sdFAPG,
+         zFGP = (fieldGoalsPercentage-careerFGP)/sdFGP)
+
+byTeam <- zPlayers %>% 
+  filter(numMinutes>0) %>%
+  mutate(year = year(gameDate)) %>% 
+  group_by(personId, playerteamName, year) %>% 
+  mutate(PPM = points/numMinutes) %>% 
+  summarize(teamPPM = mean(PPM),
+            teamPPG = mean(points),
+            teamGames = n(),
+            teamMinutes = sum(numMinutes),
+            zAvgPPG = mean(zPPG),
+            zAvgPPM = mean(zPPM),
+            zAvgFAPG = mean(zFAPG),
+            zAvgFGP = mean(zFGP))
+
+#names <- players %>% select(firstName, lastName, personId)
+
+#names %>% filter(lastName == "Westbrook")
+
+# not sure why I can't do the below instead of the above filter. Somehow this causes byTeam to ungroup
+
+  # left_join(names, by = "personId") %>% 
+  # relocate(firstName, lastName, zAvgPPG, zAvgPPM,playerteamName, .before = 1) %>% 
+  # filter(firstName == "LeBron")
+
+#There are a couple of people for whom have played<3 games and scored <2 points that cause avgZssoc to be NA
+#See below code chunk
+```
+
+So for example, players who played on one team their whole career would have a zAvgPPG and zAvgPPM of 0. However, if a player played for the Lakers and Cavaliers but had higher PPG stats on the cavaliers then the their entries would look like the following:
+
+```{r}
+#LeBron
+byTeam %>% 
+  filter(personId == 2544) %>% 
+  select(playerteamName, year, zAvgPPG)
+```
+
+## Calculate Team Association indexes by year Now, we average the zAvgPPG for each player who played for said team since 2015, weighted by the minutes a player played for that team. We weight it because the results starter who player \>70 games a season matter more than a bench player who played in \<10 games a season.
+
+```{r}
+teamAssoc <- byTeam %>% 
+  group_by(playerteamName, year) %>% 
+  summarize(avgAssocPPG = mean(zAvgPPG*teamMinutes, na.rm = TRUE),
+            avgAssocPPM = mean(zAvgPPM*teamMinutes, na.rm = TRUE),
+            avgAssocFAPG = mean(zAvgFAPG*teamMinutes, na.rm = TRUE),
+            avgAssocFGP = mean(zAvgFGP*teamMinutes, na.rm = TRUE)) %>%
+  arrange(desc(avgAssocPPG))
+
+teamAssoc %>% arrange()
+```
+
+## Finding data for total teams & corelation between indexes
+
+We explored if any of the indexes seem to have a correlation between each other. They do. attempts, PPG and PPM all have a positive correlation. But FGP does not
+
+```{r}
+
+totalTeamAssoc <- teamAssoc %>% 
+  group_by(playerteamName) %>% 
+  select(-year) %>% 
+  summarize_all(mean) %>% 
+  left_join(win_rate_data, join_by(playerteamName == teamName))
+totalTeamAssoc
+
+totalTeamAssoc %>% 
+  ggplot(aes(x = avgAssocFAPG, y = avgAssocPPG)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+print("correlation between attempts and PPG")
+cor.test(totalTeamAssoc$avgAssocFAPG, totalTeamAssoc$avgAssocPPG)
+
+totalTeamAssoc %>% 
+  ggplot(aes(x = avgAssocFAPG, y = avgAssocPPM)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+print("correlation between attempts and PPM")
+cor.test(totalTeamAssoc$avgAssocFAPG, totalTeamAssoc$avgAssocPPM)
+
+print("correlation between attempts and FGP")
+totalTeamAssoc %>% 
+  ggplot(aes(x = avgAssocFAPG, y = avgAssocFGP)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+cor.test(totalTeamAssoc$avgAssocFAPG, totalTeamAssoc$avgAssocFGP)
+```
+
+## Testing win rate vs indexes
+
+testing a correlation between win rate and the indexes of teams There seems to exist a probable correlation
+
+```{r}
+totalTeamAssoc %>% 
+  ggplot(aes(x = winRate, y = avgAssocPPG)) +
+  geom_point() + geom_smooth(method = "lm")
+cor.test(totalTeamAssoc$winRate, totalTeamAssoc$avgAssocPPG)
+
+totalTeamAssoc %>% 
+  ggplot(aes(x = winRate, y = avgAssocFGP)) +
+  geom_point() + 
+  geom_smooth(method = "lm")
+cor.test(totalTeamAssoc$winRate, totalTeamAssoc$avgAssocPPG)
+```
+
+## Testing the indexes in ANOVA
+
+anova testing only shows signifcance of a relationship between PPG and teams This partially contradicts correlation testing
+
+```{r}
+teamAssocB <- teamAssoc %>% 
+  left_join(win_rate_data, join_by(playerteamName == teamName))
+
+modelPPG <- aov(avgAssocPPG ~ playerteamName, data = teamAssocB)
+summary(modelPPG)
+
+modelFGP <- aov(avgAssocFGP ~ playerteamName, data = teamAssocB)
+summary(modelFGP)
+```
+
+## Graphing the indexes for last 10 years by team
+
+summarize the major index values: PPG and FGP FGAP and PPM correlate already with PPG so not graphed
+
+```{r}
+library(ggthemes)
+
+totalTeamAssoc %>%
+  ggplot(aes(x = reorder(playerteamName, avgAssocPPG), 
+             y = avgAssocPPG, 
+             fill = avgAssocPPG > 0)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(title = "Average Player Over/Underperformance by Franchise",
+       subtitle = "Measured in effect index relative to each player’s own career average",
+       x = "Franchise",
+       y = "Weighted Avg effect index (Points per Game)") +
+  scale_fill_manual(values = c("TRUE" = "#4CAF50", "FALSE" = "#F44336")) +
+  theme_minimal(base_size = 13)
+
+totalTeamAssoc %>%
+  ggplot(aes(x = reorder(playerteamName, avgAssocFGP), 
+             y = avgAssocFGP, 
+             fill = avgAssocFGP > 0)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(title = "Average Player Over/Underperformance by Franchise",
+       subtitle = "Measured in effect index relative to each player’s own career average",
+       x = "Franchise",
+       y = "Weighted Avg effect index (Field Goal Percentage)") +
+  scale_fill_manual(values = c("TRUE" = "#4CAF50", "FALSE" = "#F44336")) +
+  theme_minimal(base_size = 13)
+```
+
+## What do indexes mean?
+
+So far the indexes have been abstract. Here is a sample table that shows how much of an effect our indexes mean. Its very small. We estimate that the strongest effect is \~2 extra PPG or \~2% more FG%
+
+```{r}
+yearTested <- 2025
+
+mins <- byTeam %>%
+  filter(year == yearTested) %>% 
+  group_by(playerteamName) %>% 
+  summarize(avgTeamMinutes = mean(teamMinutes))
+
+weightedSds <- career %>% 
+  filter(careerMinutes!=0) %>% 
+  summarize(centralSdFgp = mean(sdFGP*careerMinutes),
+            meanCareerMinutes = mean(careerMinutes),
+            centralSdPpg = mean(sdPoints*careerMinutes)) %>% 
+  mutate(SdFgp = centralSdFgp/meanCareerMinutes,
+         SdPpg = centralSdPpg/meanCareerMinutes)
+  
+left_join(totalTeamAssoc, mins, by = "playerteamName") %>% 
+  mutate(FgpEffect = avgAssocFGP*weightedSds$SdFgp/avgTeamMinutes*100,
+         PpgEffect = avgAssocPPG*weightedSds$SdPpg/avgTeamMinutes) %>% 
+  arrange(desc(PpgEffect)) %>% 
+  relocate(PpgEffect, FgpEffect, avgAssocPPG, avgAssocFGP, .after = 1) 
+
+rm(mins,weightedSds)
+```
+
+# **Improvements**
+
+If we were tasked with doing this project again, instead of using a different year for each observation we could separate each observation by a unique season. Also for the travel distance calculations, we could have calculated a teams travel distance from the city they last played at instead of calculating from their home city to their next game. This will give us a better idea of how much a team traveled because teams don't usually fly back home after each game. Instead they fly directly towards the city where their next game is going to be played.
+
+Another area that would help improve the quality of our project is the sheer amount of data available to us. We chose to focus on only the last 10 years of games since this is what is considered the “modern era” of the NBA. This era is identified through the high number of three point shots and layups taken and the phasing out of the mid range shot. Filtering our data like this only gave us the last 10 years of players being transferred from one team to another. Including more instances while also keeping the era/playstyle the same would definitely improve the accuracy of our results.
+
+# **Conclusion** 
+
+## **Home court Advantage**
+
+Our findings for home court advantage were very interesting. There was one team that stood out above all the others and that was the Denver Nuggets. The Nuggets had around a 3.5 greater average plus minus at home games compared to their average plus minus. It's a known fact that Denver sports teams have one of the best home field advantages but why exactly is this? Through some research we found that due to the increased elevation in Denver the oxygen is more thin. Due to the thinner oxygen levels players from other cities have a much lower stamina when they go play in Denver. Of course the players for the Nuggets will be used to these oxygen levels since they live there and the visitors will not be. When looking at the second highest team, the Utah Jazz, we see something very similar. The Jazz are not a team known for their NBA success however they had the second highest plus minus differential. Salt Lake City, is another city with a pretty high elevation, almost as high as Denver, so we can assume the same effect for the Jazz is taking place. 
+
+\
+
+The rest of the teams measured seemed to have a generally the same  average increase in how they played at home vs their average. All the rest of the teams had around a range from 1.8-2.8 increase in their average plus minus.  However, there were three other teams that stuck out on the lower end. These teams were the Bulls, Nets, and the Kings. 3 franchises known for not having strong fan bases and relative central positions compared to other teams. This allows fans from other franchises to essentially take over their home games and take away from their home court advantage. 
+
+## **Travel distance**
+
+In our research we performed a distance calculation for the distance between two teams' home stadiums and after analysing the result we could only find a weak correlation between a longer travel distance and win rate. The hypothesis was that the longer a team has to travel for a game the more likely it is that they are going to perform poorly. This does not seem to be the case for our study. We can see in our data and in our t-test that there seems to be no significant correlation between travel distance and win rate. This leads one to believe that travel might not be a big factor in the NBA.
+
+\
+
+However, in other studies such as Charest J, et. al. Impacts of travel distance and travel direction on back-to-back games in the National Basketball Association. J Clin Sleep Med. 2021 Nov 1 (17 (11):2269-2274. doi: 10.5664/jcsm.9446) they come to a different conclusion. Their findings support the idea that travel fatigue and or circadian disruption influences performance making travel distance a legitimate factor. However, to what degree it affects the team's performance is uncertain. This is due to the interplay of many factors. Factors like jet lag, circadian disruption, rest days, schedule density (back-to-backs), crowd presence, team quality all interact in complex ways and combined with the actual travel distance. 
+
+\
+
+In our study we assumed that a team travels from their home arena to their opponents arena for that game, plates the game and then returns to their own home arena. This might not be a perfect representation of reality because games might be scheduled so that a team plays a series of away games in a sequence to reduce the travel distance in between each game. In addition, the means of travel a team uses can be different if they go by bus the travel time will probably be longer than if they go by plane.  
+
+## **Franchise Effect**
+
+We calculated some association indexes for teams in PPG, FAPG, PPM, and FG%. These values represent the effect that a franchise generally have on their players in this statistic. What we found was that generally teams with high win rates tend to decrease PPG, PPM, and FAPG. In other words, a player moving to good teams probably means they will now take less shots per game and score less. Testing seems to show that the null hypothesis can probably be rejected for these three statistics. In other words, we are pretty sure that winning teams decrease PPG and the other stats.
+
+For the 4th calculated index FG%, we found that it broke the trends for the other two. First of all, if anything, FG% seems to maybe *increase* on *high* win rate teams. This means that winning teams might have a tendency to increase the efficiency of their players. However, testing is inconclusive. Correlation testing between win rate and this index gives a low p value but ANOVA testing between teams and this index give a high p value. Therefore, whether or not the index for FG% is random noise or something meaningful is inconclusive.
